@@ -1,0 +1,11 @@
+# Executable
+scop
+
+# VSCode
+.vscode
+
+# C++
+*.o
+
+# MacOS
+.DS_Store
