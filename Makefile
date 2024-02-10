@@ -2,48 +2,56 @@
 #  SOURCES                                                                     #
 ################################################################################
 
-SRCS	=	src/main.cpp \
+SRCS	:=	src/main.cpp \
+			src/glad.cpp \
 
-OBJS	=	$(SRCS:.cpp=.o)
+OBJS	:=	$(SRCS:.cpp=.o)
 
 ################################################################################
 #  CONSTANTS                                                                   #
 ################################################################################
 
-CXX			=	c++
-CXXFLAGS	=	-Wall -Wextra -Werror
+OS			:=	$(shell uname -s)
 
-NAME		=	scop
+CXX			:=	c++
+CXXFLAGS	:=	-Wall -Wextra -std=c++11
 
-INCLUDES	=	-Iheaders
-# Include OpenGL, GLFW and GLEW
-LIBS		=	-lglfw -lGLEW -framework OpenGL
+NAME		:=	scop
+
+INCLUDES	:=	-Iheaders
+LIBS		:=	-lglfw
+
+ifeq ($(OS), Darwin)
+	LIBS += -framework OpenGL
+else ifeq ($(OS), Linux)
+	LIBS += -lGL
+endif
 
 ################################################################################
 #  MAKEFILE VISUALS                                                            #
 ################################################################################
 
-SHELL	=	zsh
-REDO	=	\r\e[2K
+SHELL	:=	zsh
+REDO	:=	\r\e[2K
 
 # COLORS
-BG_RD	=	\033[48;2;237;66;69m
-BG_GR	=	\033[48;2;0;194;60m
-BG_BL	=	\033[48;2;88;101;242m
-FG_WH	=	\033[38;2;255;255;255m
-FG_BK	=	\033[38;2;0;0;0m
-BOLD	=	\033[1m
-NOCOL	=	\033[0m
+BG_RD	:=	\033[48;2;237;66;69m
+BG_GR	:=	\033[48;2;0;194;60m
+BG_BL	:=	\033[48;2;88;101;242m
+FG_WH	:=	\033[38;2;255;255;255m
+FG_BK	:=	\033[38;2;0;0;0m
+BOLD	:=	\033[1m
+NOCOL	:=	\033[0m
 
 # CHARS
-TICK	=	✓
-PEN		=	✐
-CROSS	=	𐄂
+TICK	:=	✓
+PEN		:=	✐
+CROSS	:=	𐄂
 
 # MESSAGES
-VALID	=	$(BOLD)$(FG_WH)$(BG_GR) $(TICK)
-INFO	=	$(BOLD)$(FG_WH)$(BG_BL) $(PEN)
-DEL		=	$(BOLD)$(FG_WH)$(BG_RD) $(CROSS)
+VALID	:=	$(BOLD)$(FG_WH)$(BG_GR) $(TICK)
+INFO	:=	$(BOLD)$(FG_WH)$(BG_BL) $(PEN)
+DEL		:=	$(BOLD)$(FG_WH)$(BG_RD) $(CROSS)
 
 ################################################################################
 #  TARGETS / RULES                                                             #
@@ -64,7 +72,7 @@ run: $(NAME)
 
 debug:
 	@echo '$(INFO) Debugging project ! $(NOCOL)'
-	@make -sC ./ CXXFLAGS="${CXXFLAGS} -g -fsanitize=address" re
+	@make -sC ./ CXXFLAGS="${CXXFLAGS} -g -fsanitize=address -DDEBUG" re
 
 clean:
 	@rm -f $(OBJS)

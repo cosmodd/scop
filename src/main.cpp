@@ -1,7 +1,29 @@
 #include <iostream>
 #include <fstream>
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+// Function to printout opengl errors
+GLenum glCheckError_(const char* file, int line) {
+	GLenum errorCode;
+	while ((errorCode = glGetError()) != GL_NO_ERROR) {
+		std::string error;
+		switch (errorCode) {
+			case GL_INVALID_ENUM: error = "INVALID_ENUM"; break;
+			case GL_INVALID_VALUE: error = "INVALID_VALUE"; break;
+			case GL_INVALID_OPERATION: error = "INVALID_OPERATION"; break;
+			case GL_STACK_OVERFLOW: error = "STACK_OVERFLOW"; break;
+			case GL_STACK_UNDERFLOW: error = "STACK_UNDERFLOW"; break;
+			case GL_OUT_OF_MEMORY: error = "OUT_OF_MEMORY"; break;
+			case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+		}
+		std::cerr << error << " | " << file << " (" << line << ")" << std::endl;
+	}
+	return errorCode;
+}
+#define glCheckError() glCheckError_(__FILE__, __LINE__)
 
 std::string readFile(const char* filePath) {
 	std::string content;
@@ -27,6 +49,17 @@ GLuint compileShader(GLenum type, const char* source) {
 	GLuint id = glCreateShader(type);
 	glShaderSource(id, 1, &source, nullptr);
 	glCompileShader(id);
+	int result = -1;
+	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
+	if (result == GL_FALSE) {
+		int length = 1024;
+		char message[1024];
+		glGetShaderInfoLog(id, 1024, nullptr, message);
+		std::cerr << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
+		std::cerr << message << std::endl;
+		glDeleteShader(id);
+		return 0;
+	}
 	return id;
 }
 
@@ -46,6 +79,50 @@ GLuint createShader(const char* vertexShaderSource, const char* fragmentShaderSo
 	return program;
 }
 
+struct Texture {
+	GLuint id;
+	int width;
+	int height;
+};
+
+Texture loadTexture(const char* filePath) {
+	Texture texture;
+
+	stbi_set_flip_vertically_on_load(true);
+	glGenTextures(1, &texture.id);
+	glBindTexture(GL_TEXTURE_2D, texture.id);
+	unsigned char* data = stbi_load(filePath, &texture.width, &texture.height, nullptr, 4);
+
+	if (data) {
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	} else {
+		std::cerr << "Failed to load texture: " << filePath << std::endl;
+	}
+
+	stbi_image_free(data);
+	return texture;
+}
+
+void handleFPS(GLFWwindow* window) {
+	static double previousSeconds = glfwGetTime();
+	static int frameCount = 0;
+	double elapsedSeconds = glfwGetTime() - previousSeconds;
+
+	if (elapsedSeconds > 0.25) {
+		previousSeconds = glfwGetTime();
+		double fps = (double)frameCount / elapsedSeconds;
+		double msPerFrame = 1000.0 / fps;
+
+		char title[256];
+		sprintf(title, "OpenGL | FPS: %.2f | Frame Time: %.2f ms", fps, msPerFrame);
+		glfwSetWindowTitle(window, title);
+		frameCount = 0;
+	}
+
+	frameCount++;
+}
+
 int main() {
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -53,10 +130,11 @@ int main() {
 	}
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL", nullptr, nullptr);\
+	#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	#endif
+	GLFWwindow* window = glfwCreateWindow(800, 800, "OpenGL", nullptr, nullptr);\
 
 	if (!window) {
 		std::cerr << "Failed to create window" << std::endl;
@@ -65,50 +143,91 @@ int main() {
 	}
 
 	glfwMakeContextCurrent(window);
-	glewExperimental = GL_TRUE;
 
-	if (glewInit() != GLEW_OK) {
-		std::cerr << "Failed to initialize GLEW" << std::endl;
-		glfwTerminate();
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "Failed to initialize glad" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	// Print the OpenGL version
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
+	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+		#ifdef DEBUG
+		printf("Key: %i | SC: %i | ACT: %i | MODS: %i\n", key, scancode, action, mods);
+		#endif
+		switch (key) {
+			case GLFW_KEY_ESCAPE:
+			case GLFW_KEY_Q:
+				glfwSetWindowShouldClose(window, true);
+				break;
+			default:
+				break;
+		}
+	});
+
 	GLuint program = createShader(
 		readFile("./assets/shaders/default.vert").c_str(),
 		readFile("./assets/shaders/default.frag").c_str()
 	);
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, // bottom left
-		0.5f, -0.5f, 0.0f, // bottom right
-		0.0f, 0.5f, 0.0f // top
+	Texture blackStoneTexture = loadTexture("./assets/textures/blackstone.jpg");
+
+	float data[] {
+		// Position			// Color			// Texture
+		-0.5f, -0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	-0.5f, -0.5f,	// Bottom-left
+		0.5f, -0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	0.5f, -0.5f,	// Bottom-right
+		0.5f, 0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	0.5f, 0.5f,		// Top-right
+		-0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	-0.5f, 0.5f		// Top-left
 	};
 
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	unsigned int indices[] {
+		0, 1, 2,
+		2, 3, 0
+	};
 
-	GLuint vao;
+	GLuint vao, vbo, ebo;
 	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &ebo);
+	glGenBuffers(1, &vbo);
+
 	glBindVertexArray(vao);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// Position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
+	// Color
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	// Texture
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 
 	while (!glfwWindowShouldClose(window)) {
+		handleFPS(window);
+
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		glUseProgram(program);
+		glUniform1f(glGetUniformLocation(program, "u_time"), glfwGetTime());
+
+		glBindTexture(GL_TEXTURE_2D, blackStoneTexture.id);
 		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr); glCheckError();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
