@@ -4,6 +4,10 @@
 #include <glad/glad.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <vector>
+
+#include "maths/Vec3.hpp"
+#include "maths/Mat4.hpp"
 
 // Function to printout opengl errors
 GLenum glCheckError_(const char* file, int line) {
@@ -73,6 +77,18 @@ GLuint createShader(const char* vertexShaderSource, const char* fragmentShaderSo
 	glLinkProgram(program);
 	glValidateProgram(program);
 
+	int result = -1;
+	glGetProgramiv(program, GL_LINK_STATUS, &result);
+	if (result == GL_FALSE) {
+		int length = 1024;
+		char message[1024];
+		glGetProgramInfoLog(program, 1024, nullptr, message);
+		std::cerr << "Failed to link program!" << std::endl;
+		std::cerr << message << std::endl;
+		glDeleteProgram(program);
+		return 0;
+	}
+
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
@@ -95,6 +111,7 @@ Texture loadTexture(const char* filePath) {
 
 	if (data) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glGenerateMipmap(GL_TEXTURE_2D);
 	} else {
 		std::cerr << "Failed to load texture: " << filePath << std::endl;
@@ -123,7 +140,39 @@ void handleFPS(GLFWwindow* window) {
 	frameCount++;
 }
 
+maths::Vec3 position(0.0f, 0.0f, -3.0f);
+
+void handleInputs(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+
+	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
+		switch (key) {
+			case GLFW_KEY_W:
+				position.z += 0.1f;
+				break;
+			case GLFW_KEY_S:
+				position.z -= 0.1f;
+				break;
+			case GLFW_KEY_A:
+				position.x += 0.1f;
+				break;
+			case GLFW_KEY_D:
+				position.x -= 0.1f;
+				break;
+			case GLFW_KEY_R:
+				position.y -= 0.1f;
+				break;
+			case GLFW_KEY_F:
+				position.y += 0.1f;
+				break;
+		}
+	}
+}
+
 int main() {
+
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW" << std::endl;
 		return EXIT_FAILURE;
@@ -131,6 +180,7 @@ int main() {
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true); 
 	#ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	#endif
@@ -152,39 +202,72 @@ int main() {
 	// Print the OpenGL version
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
-		#ifdef DEBUG
-		printf("Key: %i | SC: %i | ACT: %i | MODS: %i\n", key, scancode, action, mods);
-		#endif
-		switch (key) {
-			case GLFW_KEY_ESCAPE:
-			case GLFW_KEY_Q:
-				glfwSetWindowShouldClose(window, true);
-				break;
-			default:
-				break;
-		}
-	});
+	glfwSetKeyCallback(window, handleInputs);
 
 	GLuint program = createShader(
 		readFile("./assets/shaders/default.vert").c_str(),
 		readFile("./assets/shaders/default.frag").c_str()
 	);
 
-	Texture blackStoneTexture = loadTexture("./assets/textures/blackstone.jpg");
+	Texture blackStoneTexture = loadTexture("./assets/textures/netherrack.png");
 
-	float data[] {
-		// Position			// Color			// Texture
-		-0.5f, -0.5f, 0.0f,	1.0f, 0.0f, 0.0f,	-0.5f, -0.5f,	// Bottom-left
-		0.5f, -0.5f, 0.0f,	0.0f, 1.0f, 0.0f,	0.5f, -0.5f,	// Bottom-right
-		0.5f, 0.5f, 0.0f,	0.0f, 0.0f, 1.0f,	0.5f, 0.5f,		// Top-right
-		-0.5f, 0.5f, 0.0f,	1.0f, 1.0f, 0.0f,	-0.5f, 0.5f		// Top-left
+	std::vector<float> cubeData {
+		// Position				// Texture
+		// Back face
+		-0.5f, -0.5f, -0.5f,	0.0f, 0.0f,	// Bottom-left
+		 0.5f, -0.5f, -0.5f,	1.0f, 0.0f,	// Bottom-right
+		 0.5f,  0.5f, -0.5f,	1.0f, 1.0f,	// Top-right
+		-0.5f,  0.5f, -0.5f,	0.0f, 1.0f,	// Top-left
+		// Front face
+		-0.5f, -0.5f,  0.5f,	0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,	1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,	1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,	0.0f, 0.0f,
+		// Left face
+		-0.5f, -0.5f, -0.5f,	0.0f, 0.0f,	// Bottom-left
+		-0.5f, -0.5f,  0.5f,	1.0f, 0.0f,	// Bottom-right
+		-0.5f,  0.5f,  0.5f,	1.0f, 1.0f,	// Top-right
+		-0.5f,  0.5f, -0.5f,	0.0f, 1.0f,	// Top-left
+		// Right face
+		 0.5f, -0.5f, -0.5f,	0.0f, 0.0f,	// Bottom-left
+		 0.5f, -0.5f,  0.5f,	1.0f, 0.0f,	// Bottom-right
+		 0.5f,  0.5f,  0.5f,	1.0f, 1.0f,	// Top-right
+		 0.5f,  0.5f, -0.5f,	0.0f, 1.0f,	// Top-left
+		// Bottom face
+		-0.5f, -0.5f, -0.5f,	0.0f, 0.0f,	// Bottom-left
+		-0.5f, -0.5f,  0.5f,	1.0f, 0.0f,	// Bottom-right
+		 0.5f, -0.5f,  0.5f,	1.0f, 1.0f,	// Top-right
+		 0.5f, -0.5f, -0.5f,	0.0f, 1.0f,	// Top-left
+		// Top face
+		-0.5f,  0.5f, -0.5f,	0.0f, 0.0f,	// Bottom-left
+		-0.5f,  0.5f,  0.5f,	1.0f, 0.0f,	// Bottom-right
+		 0.5f,  0.5f,  0.5f,	1.0f, 1.0f,	// Top-right
+		 0.5f,  0.5f, -0.5f,	0.0f, 1.0f	// Top-left
 	};
 
-	unsigned int indices[] {
+	std::vector<unsigned int> cubeIndices {
+		// Back face
 		0, 1, 2,
-		2, 3, 0
+		2, 3, 0,
+		// Front face
+		4, 5, 6,
+		6, 7, 4,
+		// Left face
+		8, 9, 10,
+		10, 11, 8,
+		// Right face
+		12, 13, 14,
+		14, 15, 12,
+		// Bottom face
+		16, 17, 18,
+		18, 19, 16,
+		// Top face
+		20, 21, 22,
+		22, 23, 20
 	};
+
+	std::vector<float>* data = &cubeData;
+	std::vector<unsigned int>* indices = &cubeIndices;
 
 	GLuint vao, vbo, ebo;
 	glGenVertexArrays(1, &vao);
@@ -194,40 +277,65 @@ int main() {
 	glBindVertexArray(vao);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, data->size() * sizeof(float), data->data(), GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size() * sizeof(unsigned int), indices->data(), GL_STATIC_DRAW);
 
 	// Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	// Color
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
-
-	// Texture
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-	glEnableVertexAttribArray(2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	glEnable(GL_DEPTH_TEST);
+
 	while (!glfwWindowShouldClose(window)) {
+		maths::Mat4 transform = maths::Mat4::identity();
+		transform = transform * maths::Mat4::translation(maths::Vec3(0.0f, sinf(glfwGetTime() * 4) * 0.2, 0.0f));
+		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(1.0f, 0.0f, 0.0f));
+		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(0.0f, 1.0f, 0.0f));
+		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(0.0f, 0.0f, 1.0f));
+		transform = transform.transpose();
+
+		maths::Mat4 view = maths::Mat4::translation(position);
+		view = view.transpose();
+
+		maths::Mat4 projection = maths::Mat4::perspective(45.0f, 1.0f, 0.1f, 100.0f);
+		projection = projection.transpose();
+
 		handleFPS(window);
 
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(program);
 		glUniform1f(glGetUniformLocation(program, "u_time"), glfwGetTime());
+		glUniformMatrix4fv(glGetUniformLocation(program, "u_transform"), 1, GL_FALSE, transform.getElements());
+		glUniformMatrix4fv(glGetUniformLocation(program, "u_view"), 1, GL_FALSE, view.getElements());
+		glUniformMatrix4fv(glGetUniformLocation(program, "u_projection"), 1, GL_FALSE, projection.getElements());
 
 		glBindTexture(GL_TEXTURE_2D, blackStoneTexture.id);
 		glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr); glCheckError();
+
+		int count = 2;
+		for (int x = -count; x <= count; x++) {
+			for (int y = -count; y <= count; y++) {
+				maths::Mat4 model = maths::Mat4::translation(maths::Vec3(x * 2, y * 2, 0.0f));
+				model = model * maths::Mat4::rotation((float)(glfwGetTime() + x + y) / 2.0f, maths::Vec3(1.0f, 0.0f, 0.0f));
+				model = model * maths::Mat4::rotation((float)(glfwGetTime() + x + y) / 2.0f, maths::Vec3(0.0f, 1.0f, 0.0f));
+				model = model * maths::Mat4::rotation((float)(glfwGetTime() + x + y) / 2.0f, maths::Vec3(0.0f, 0.0f, 1.0f));
+				glUniformMatrix4fv(glGetUniformLocation(program, "u_model"), 1, GL_FALSE, model.transpose().getElements());
+				glDrawElements(GL_TRIANGLES, indices->size(), GL_UNSIGNED_INT, nullptr);
+			}
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

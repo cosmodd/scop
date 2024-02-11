@@ -4,6 +4,8 @@
 
 SRCS	:=	src/main.cpp \
 			src/glad.cpp \
+			src/maths/Vec3.cpp \
+			src/maths/Mat4.cpp \
 
 OBJS	:=	$(SRCS:.cpp=.o)
 
@@ -15,6 +17,7 @@ OS			:=	$(shell uname -s)
 
 CXX			:=	c++
 CXXFLAGS	:=	-Wall -Wextra -std=c++11
+CXXFLAGS	+=	-Wno-deprecated-declarations -Wno-unused-parameter -Wno-unused-variable -Wno-macro-redefined
 
 NAME		:=	scop
 
