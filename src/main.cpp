@@ -140,32 +140,58 @@ void handleFPS(GLFWwindow* window) {
 	frameCount++;
 }
 
-maths::Vec3 position(0.0f, 0.0f, -3.0f);
+struct Camera {
+	maths::Vec3 position;
+	maths::Vec3 direction;
+	float yaw;
+	float pitch;
+};
+
+Camera camera = {
+	.position = { 0.0f, 0.0f, -3.0f },
+	.direction = { 0.0f, 0.0f, 1.0f },
+	.yaw = 90.0f / 180.0f * M_PI,
+	.pitch = 0.0f
+};
 
 void handleInputs(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
 
+	maths::Vec3 cameraUp = maths::Vec3(0.0f, 1.0f, 0.0f);
+	maths::Vec3 cameraRight = camera.direction.cross(cameraUp).normalize();
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
 		switch (key) {
 			case GLFW_KEY_W:
-				position.z += 0.1f;
+				camera.position = camera.position + camera.direction;
 				break;
 			case GLFW_KEY_S:
-				position.z -= 0.1f;
+				camera.position = camera.position - camera.direction;
 				break;
 			case GLFW_KEY_A:
-				position.x += 0.1f;
+				camera.position = camera.position - cameraRight;
 				break;
 			case GLFW_KEY_D:
-				position.x -= 0.1f;
+				camera.position = camera.position + cameraRight;
 				break;
 			case GLFW_KEY_R:
-				position.y -= 0.1f;
+				camera.position = camera.position + cameraUp;
 				break;
 			case GLFW_KEY_F:
-				position.y += 0.1f;
+				camera.position = camera.position - cameraUp;
+				break;
+			case GLFW_KEY_RIGHT:
+				camera.yaw += M_PI / 180.0f;
+				break;
+			case GLFW_KEY_LEFT:
+				camera.yaw -= M_PI / 180.0f;
+				break;
+			case GLFW_KEY_UP:
+				camera.pitch += M_PI / 180.0f;
+				break;
+			case GLFW_KEY_DOWN:
+				camera.pitch -= M_PI / 180.0f;
 				break;
 		}
 	}
@@ -296,14 +322,14 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	while (!glfwWindowShouldClose(window)) {
-		maths::Mat4 transform = maths::Mat4::identity();
-		transform = transform * maths::Mat4::translation(maths::Vec3(0.0f, sinf(glfwGetTime() * 4) * 0.2, 0.0f));
-		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(1.0f, 0.0f, 0.0f));
-		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(0.0f, 1.0f, 0.0f));
-		// transform = transform * maths::Mat4::rotation((float)glfwGetTime() / 2.0f, maths::Vec3(0.0f, 0.0f, 1.0f));
-		transform = transform.transpose();
-
-		maths::Mat4 view = maths::Mat4::translation(position);
+		camera.direction.x = cosf(camera.yaw) * cosf(camera.pitch);
+		camera.direction.y = sinf(camera.pitch);
+		camera.direction.z = sinf(camera.yaw) * cosf(camera.pitch);
+		maths::Mat4 view = maths::Mat4::lookAt(
+			camera.position,
+			camera.position + camera.direction,
+			maths::Vec3(0.0f, 1.0f, 0.0f)
+		);
 		view = view.transpose();
 
 		maths::Mat4 projection = maths::Mat4::perspective(45.0f, 1.0f, 0.1f, 100.0f);
@@ -318,7 +344,6 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(program);
 		glUniform1f(glGetUniformLocation(program, "u_time"), glfwGetTime());
-		glUniformMatrix4fv(glGetUniformLocation(program, "u_transform"), 1, GL_FALSE, transform.getElements());
 		glUniformMatrix4fv(glGetUniformLocation(program, "u_view"), 1, GL_FALSE, view.getElements());
 		glUniformMatrix4fv(glGetUniformLocation(program, "u_projection"), 1, GL_FALSE, projection.getElements());
 
