@@ -1,7 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include <GLFW/glfw3.h>
+#define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include <vector>
@@ -11,18 +12,35 @@
 #include "maths/Mat4.hpp"
 
 // Function to printout opengl errors
-GLenum glCheckError_(const char* file, int line) {
+GLenum glCheckError_(const char *file, int line)
+{
 	GLenum errorCode;
-	while ((errorCode = glGetError()) != GL_NO_ERROR) {
+	while ((errorCode = glGetError()) != GL_NO_ERROR)
+	{
 		std::string error;
-		switch (errorCode) {
-			case GL_INVALID_ENUM: error = "INVALID_ENUM"; break;
-			case GL_INVALID_VALUE: error = "INVALID_VALUE"; break;
-			case GL_INVALID_OPERATION: error = "INVALID_OPERATION"; break;
-			case GL_STACK_OVERFLOW: error = "STACK_OVERFLOW"; break;
-			case GL_STACK_UNDERFLOW: error = "STACK_UNDERFLOW"; break;
-			case GL_OUT_OF_MEMORY: error = "OUT_OF_MEMORY"; break;
-			case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+		switch (errorCode)
+		{
+		case GL_INVALID_ENUM:
+			error = "INVALID_ENUM";
+			break;
+		case GL_INVALID_VALUE:
+			error = "INVALID_VALUE";
+			break;
+		case GL_INVALID_OPERATION:
+			error = "INVALID_OPERATION";
+			break;
+		case GL_STACK_OVERFLOW:
+			error = "STACK_OVERFLOW";
+			break;
+		case GL_STACK_UNDERFLOW:
+			error = "STACK_UNDERFLOW";
+			break;
+		case GL_OUT_OF_MEMORY:
+			error = "OUT_OF_MEMORY";
+			break;
+		case GL_INVALID_FRAMEBUFFER_OPERATION:
+			error = "INVALID_FRAMEBUFFER_OPERATION";
+			break;
 		}
 		std::cerr << error << " | " << file << " (" << line << ")" << std::endl;
 	}
@@ -30,33 +48,37 @@ GLenum glCheckError_(const char* file, int line) {
 }
 #define glCheckError() glCheckError_(__FILE__, __LINE__)
 
-std::string readFile(const char* filePath) {
+std::string readFile(const char *filePath)
+{
 	std::string content;
 	std::ifstream fileStream(filePath, std::ios::in);
 
-	if (!fileStream.is_open()) {
+	if (!fileStream.is_open())
+	{
 		std::cerr << "Could not read file " << filePath << ". File does not exist." << std::endl;
 		return "";
 	}
 
 	std::string line = "";
-	while (!fileStream.eof()) {
+	while (!fileStream.eof())
+	{
 		std::getline(fileStream, line);
 		content.append(line + "\n");
 	}
 
 	fileStream.close();
 	return content;
-
 }
 
-GLuint compileShader(GLenum type, const char* source) {
+GLuint compileShader(GLenum type, const char *source)
+{
 	GLuint id = glCreateShader(type);
 	glShaderSource(id, 1, &source, nullptr);
 	glCompileShader(id);
 	int result = -1;
 	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-	if (result == GL_FALSE) {
+	if (result == GL_FALSE)
+	{
 		int length = 1024;
 		char message[1024];
 		glGetShaderInfoLog(id, 1024, nullptr, message);
@@ -68,7 +90,8 @@ GLuint compileShader(GLenum type, const char* source) {
 	return id;
 }
 
-GLuint createShader(const char* vertexShaderSource, const char* fragmentShaderSource) {
+GLuint createShader(const char *vertexShaderSource, const char *fragmentShaderSource)
+{
 	GLuint program = glCreateProgram();
 	GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
 	GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
@@ -80,7 +103,8 @@ GLuint createShader(const char* vertexShaderSource, const char* fragmentShaderSo
 
 	int result = -1;
 	glGetProgramiv(program, GL_LINK_STATUS, &result);
-	if (result == GL_FALSE) {
+	if (result == GL_FALSE)
+	{
 		int length = 1024;
 		char message[1024];
 		glGetProgramInfoLog(program, 1024, nullptr, message);
@@ -96,25 +120,30 @@ GLuint createShader(const char* vertexShaderSource, const char* fragmentShaderSo
 	return program;
 }
 
-struct Texture {
+struct Texture
+{
 	GLuint id;
 	int width;
 	int height;
 };
 
-Texture loadTexture(const char* filePath) {
+Texture loadTexture(const char *filePath)
+{
 	Texture texture;
 
 	stbi_set_flip_vertically_on_load(true);
 	glGenTextures(1, &texture.id);
 	glBindTexture(GL_TEXTURE_2D, texture.id);
-	unsigned char* data = stbi_load(filePath, &texture.width, &texture.height, nullptr, 4);
+	unsigned char *data = stbi_load(filePath, &texture.width, &texture.height, nullptr, 4);
 
-	if (data) {
+	if (data)
+	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glGenerateMipmap(GL_TEXTURE_2D);
-	} else {
+	}
+	else
+	{
 		std::cerr << "Failed to load texture: " << filePath << std::endl;
 	}
 
@@ -122,12 +151,14 @@ Texture loadTexture(const char* filePath) {
 	return texture;
 }
 
-void handleFPS(GLFWwindow* window) {
+void handleFPS(GLFWwindow *window)
+{
 	static double previousSeconds = glfwGetTime();
 	static int frameCount = 0;
 	double elapsedSeconds = glfwGetTime() - previousSeconds;
 
-	if (elapsedSeconds > 0.25) {
+	if (elapsedSeconds > 0.25)
+	{
 		previousSeconds = glfwGetTime();
 		double fps = (double)frameCount / elapsedSeconds;
 		double msPerFrame = 1000.0 / fps;
@@ -141,7 +172,8 @@ void handleFPS(GLFWwindow* window) {
 	frameCount++;
 }
 
-struct Camera {
+struct Camera
+{
 	maths::Vec3 position;
 	maths::Vec3 direction;
 	float yaw;
@@ -149,71 +181,77 @@ struct Camera {
 };
 
 Camera camera = {
-	.position = { 0.0f, 0.0f, -3.0f },
-	.direction = { 0.0f, 0.0f, 1.0f },
+	.position = {0.0f, 0.0f, -3.0f},
+	.direction = {0.0f, 0.0f, 1.0f},
 	.yaw = 90.0f / 180.0f * M_PI,
-	.pitch = 0.0f
-};
+	.pitch = 0.0f};
 
-void handleInputs(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+void handleInputs(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+	if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS)
+	{
 		glfwSetWindowShouldClose(window, true);
 	}
 
 	maths::Vec3 cameraUp = maths::Vec3(0.0f, 1.0f, 0.0f);
 	maths::Vec3 cameraRight = camera.direction.cross(cameraUp).normalize();
-	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-		switch (key) {
-			case GLFW_KEY_W:
-				camera.position = camera.position + camera.direction;
-				break;
-			case GLFW_KEY_S:
-				camera.position = camera.position - camera.direction;
-				break;
-			case GLFW_KEY_A:
-				camera.position = camera.position - cameraRight;
-				break;
-			case GLFW_KEY_D:
-				camera.position = camera.position + cameraRight;
-				break;
-			case GLFW_KEY_R:
-				camera.position = camera.position + cameraUp;
-				break;
-			case GLFW_KEY_F:
-				camera.position = camera.position - cameraUp;
-				break;
-			case GLFW_KEY_RIGHT:
-				camera.yaw += M_PI / 180.0f;
-				break;
-			case GLFW_KEY_LEFT:
-				camera.yaw -= M_PI / 180.0f;
-				break;
-			case GLFW_KEY_UP:
-				camera.pitch += M_PI / 180.0f;
-				break;
-			case GLFW_KEY_DOWN:
-				camera.pitch -= M_PI / 180.0f;
-				break;
+	if (action == GLFW_PRESS || action == GLFW_REPEAT)
+	{
+		switch (key)
+		{
+		case GLFW_KEY_W:
+			camera.position = camera.position + camera.direction;
+			break;
+		case GLFW_KEY_S:
+			camera.position = camera.position - camera.direction;
+			break;
+		case GLFW_KEY_A:
+			camera.position = camera.position - cameraRight;
+			break;
+		case GLFW_KEY_D:
+			camera.position = camera.position + cameraRight;
+			break;
+		case GLFW_KEY_R:
+			camera.position = camera.position + cameraUp;
+			break;
+		case GLFW_KEY_F:
+			camera.position = camera.position - cameraUp;
+			break;
+		case GLFW_KEY_RIGHT:
+			camera.yaw += M_PI / 180.0f;
+			break;
+		case GLFW_KEY_LEFT:
+			camera.yaw -= M_PI / 180.0f;
+			break;
+		case GLFW_KEY_UP:
+			camera.pitch += M_PI / 180.0f;
+			break;
+		case GLFW_KEY_DOWN:
+			camera.pitch -= M_PI / 180.0f;
+			break;
 		}
 	}
 }
 
-int main() {
+int main()
+{
 
-	if (!glfwInit()) {
+	if (!glfwInit())
+	{
 		std::cerr << "Failed to initialize GLFW" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true); 
-	#ifdef __APPLE__
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#ifdef __APPLE__
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	#endif
-	GLFWwindow* window = glfwCreateWindow(800, 800, "OpenGL", nullptr, nullptr);\
+#endif
+	GLFWwindow *window = glfwCreateWindow(800, 800, "OpenGL", nullptr, nullptr);
 
-	if (!window) {
+	if (!window)
+	{
 		std::cerr << "Failed to create window" << std::endl;
 		glfwTerminate();
 		return EXIT_FAILURE;
@@ -221,7 +259,8 @@ int main() {
 
 	glfwMakeContextCurrent(window);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	{
 		std::cerr << "Failed to initialize glad" << std::endl;
 		return EXIT_FAILURE;
 	}
@@ -233,28 +272,28 @@ int main() {
 
 	GLuint program = createShader(
 		readFile("./assets/shaders/default.vert").c_str(),
-		readFile("./assets/shaders/default.frag").c_str()
-	);
+		readFile("./assets/shaders/default.frag").c_str());
 
 	Texture blackStoneTexture = loadTexture("./assets/textures/netherrack.png");
-	engine::Mesh* object = engine::loadObject("./assets/objects/teapotuvn.obj");
+	engine::Mesh *object = engine::loadObject("./assets/objects/teapotuvn.obj");
 
-	if (!object) {
+	if (!object)
+	{
 		std::cerr << "Failed to load object" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	glEnable(GL_DEPTH_TEST);
 
-	while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(window))
+	{
 		camera.direction.x = cosf(camera.yaw) * cosf(camera.pitch);
 		camera.direction.y = sinf(camera.pitch);
 		camera.direction.z = sinf(camera.yaw) * cosf(camera.pitch);
 		maths::Mat4 view = maths::Mat4::lookAt(
 			camera.position,
 			camera.position + camera.direction,
-			maths::Vec3(0.0f, 1.0f, 0.0f)
-		);
+			maths::Vec3(0.0f, 1.0f, 0.0f));
 		view = view.transpose();
 
 		maths::Mat4 projection = maths::Mat4::perspective(45.0f, 1.0f, 0.1f, 100.0f);
