@@ -233,8 +233,15 @@ void handleInputs(GLFWwindow *window, int key, int scancode, int action, int mod
 	}
 }
 
-int main()
+int main(int argc, char **argv)
 {
+	engine::Mesh *mesh;
+
+	if (argc < 2)
+	{
+		std::cerr << "Usage: " << argv[0] << " <obj file>" << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	if (!glfwInit())
 	{
@@ -274,14 +281,14 @@ int main()
 		readFile("./assets/shaders/default.vert").c_str(),
 		readFile("./assets/shaders/default.frag").c_str());
 
-	Texture blackStoneTexture = loadTexture("./assets/textures/netherrack.png");
-	engine::Mesh *object = engine::loadObject("./assets/objects/teapotuvn.obj");
-
-	if (!object)
+	mesh = engine::loadObject(argv[1]);
+	if (mesh == nullptr)
 	{
-		std::cerr << "Failed to load object" << std::endl;
+		std::cerr << "Failed to load mesh" << std::endl;
 		return EXIT_FAILURE;
 	}
+
+	Texture texture = loadTexture("./assets/textures/netherrack.png");
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -314,12 +321,12 @@ int main()
 		// Send position of light
 		glUniform3f(glGetUniformLocation(program, "u_lightPos"), 6.0f, 6.0f, -3.0f);
 
-		glBindTexture(GL_TEXTURE_2D, blackStoneTexture.id);
+		glBindTexture(GL_TEXTURE_2D, texture.id);
 
 		maths::Mat4 model = maths::Mat4::translation(maths::Vec3(0.0f, 0.0f, 0.0f));
 		model = model * maths::Mat4::rotation((float)(glfwGetTime()) / 2.0f, maths::Vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(glGetUniformLocation(program, "u_model"), 1, GL_FALSE, model.transpose().getElements());
-		object->draw();
+		mesh->draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
