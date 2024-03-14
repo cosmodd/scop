@@ -4,6 +4,8 @@
 
 SRCS	:=	src/main.cpp \
 			src/glad.cpp \
+			src/engine/Mesh.cpp \
+			src/maths/Vec2.cpp \
 			src/maths/Vec3.cpp \
 			src/maths/Mat4.cpp \
 

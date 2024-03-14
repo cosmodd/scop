@@ -123,7 +123,7 @@ namespace maths {
 	}
 
 	std::ostream& operator<<(std::ostream& stream, const Vec3& vec) {
-		stream << "Vec3: (" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+		stream << "Vec3(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
 		return stream;
 	}
 
