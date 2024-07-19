@@ -2,8 +2,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-int main(void) {
+void processInput(GLFWwindow *window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+}
 
+int main(void)
+{
 	if (!glfwInit()) {
 		std::cerr << "Failed to initialize GLFW" << std::endl;
 		return EXIT_FAILURE;
@@ -31,9 +37,13 @@ int main(void) {
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window)) {
+		processInput(window);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
+	// Cleanup
+	glfwTerminate();
 	return EXIT_SUCCESS;
 }
