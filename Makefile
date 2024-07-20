@@ -4,6 +4,8 @@
 
 SRCS	=	src/main.cpp \
 			src/glad.c \
+			src/engine/Shader.cpp \
+			src/utils/FileSystem.cpp \
 
 OBJS	=	$(filter %.o, $(SRCS:.cpp=.o) $(SRCS:.c=.o))
 

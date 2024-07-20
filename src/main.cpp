@@ -4,65 +4,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-std::string readFile(const char *path)
-{
-	std::string content;
-	std::ifstream file(path, std::ios::binary | std::ios::in | std::ios::ate);
-
-	if (!file.is_open())
-	{
-		std::cerr << "Failed to open file: " << path << std::endl;
-		return "";
-	}
-
-	content.resize(file.tellg());
-	file.seekg(0, std::ios::beg);
-	file.read(&content[0], content.size());
-	file.close();
-
-	return content;
-}
-
-GLuint compileShader(GLenum type, const char *source)
-{
-	GLuint id = glCreateShader(type);
-
-	glShaderSource(id, 1, &source, NULL);
-	glCompileShader(id);
-
-	int result;
-	glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-
-	if (result == GL_FALSE)
-	{
-		int length = 1024;
-		char error[length];
-		glGetShaderInfoLog(id, length, &length, error);
-		std::cerr << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
-		std::cerr << error << std::endl;
-		glDeleteShader(id);
-		return 0;
-	}
-
-	return id;
-}
-
-GLuint createShader(const char *vertexShaderSource, const char *fragmentShaderSource) {
-	GLuint program = glCreateProgram();
-
-	GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
-	GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
-
-	glAttachShader(program, vertexShader);
-	glAttachShader(program, fragmentShader);
-	glLinkProgram(program);
-
-	// Cleanup
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-	return program;
-}
+#include "engine/Shader.hpp"
 
 void processInput(GLFWwindow *window)
 {
@@ -73,7 +15,6 @@ void processInput(GLFWwindow *window)
 int main(void)
 {
 	unsigned int VBO, VAO;
-	unsigned int shaderProgram;
 
 	float vertices[] = {
 		// first triangle
@@ -115,10 +56,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	shaderProgram = createShader(
-		readFile("./src/shaders/default.vs").c_str(),
-		readFile("./src/shaders/default.fs").c_str()
-	);
+	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 
 	// VAO
 	glGenVertexArrays(1, &VAO);
@@ -138,8 +76,10 @@ int main(void)
 	{
 		processInput(window);
 
-		glUseProgram(shaderProgram);
+		shader.use();
 		glBindVertexArray(VAO);
+		// DRAW AS WIREFRAME
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glfwSwapBuffers(window);
