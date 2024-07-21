@@ -1,11 +1,49 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "engine/Shader.hpp"
 #include "maths/Mat4.hpp"
+
+// Function to display current FPS and frame time in the window title
+void handleWindowTitle(GLFWwindow *window)
+{
+	static double previousTime = glfwGetTime();
+	static int frameCount = 0;
+	double currentTime = glfwGetTime();
+	double deltaTime = currentTime - previousTime;
+	frameCount++;
+
+	if (deltaTime >= 1.0)
+	{
+		double fps = frameCount / deltaTime;
+		double frameTime = 1000.0 / fps;
+
+		std::stringstream ss;
+
+		ss << "scop";
+		ss << " - " << std::fixed << std::setprecision(0) << fps << " FPS";
+		ss << " - " << std::fixed << std::setprecision(2) << frameTime << " ms";
+
+		glfwSetWindowTitle(window, ss.str().c_str());
+		frameCount = 0;
+		previousTime = currentTime;
+	}
+}
+
+void printInformations(void) {
+	std::cout << "Versions:" << std::endl;
+	std::cout << "├╴ OpenGL " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "└╴ GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+
+	std::cout << "GPU:" << std::endl;
+	std::cout << "├╴ Vendor: " << glGetString(GL_VENDOR) << std::endl;
+	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
+}
 
 void processInput(GLFWwindow *window)
 {
@@ -67,7 +105,7 @@ int main(void)
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Create Window
-	GLFWwindow *window = glfwCreateWindow(800, 800, "Hello World", NULL, NULL);
+	GLFWwindow *window = glfwCreateWindow(800, 800, "scop", NULL, NULL);
 	if (!window)
 	{
 		std::cerr << "Failed to create GLFW window" << std::endl;
@@ -82,6 +120,9 @@ int main(void)
 		std::cerr << "Failed to initialize GLAD" << std::endl;
 		return EXIT_FAILURE;
 	}
+
+	handleWindowTitle(window);
+	printInformations();
 
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 
@@ -113,6 +154,7 @@ int main(void)
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
+		handleWindowTitle(window);
 		processInput(window);
 
 		shader.use();
