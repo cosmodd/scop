@@ -6,6 +6,9 @@ SRCS	=	src/main.cpp \
 			src/glad.c \
 			src/engine/Shader.cpp \
 			src/utils/FileSystem.cpp \
+			src/maths/Mat4.cpp \
+			src/maths/Vec3.cpp \
+			src/maths/Vec2.cpp \
 
 OBJS	=	$(filter %.o, $(SRCS:.cpp=.o) $(SRCS:.c=.o))
 
