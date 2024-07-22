@@ -18,12 +18,21 @@ class Mat4
 		float& operator()(const unsigned int row, const unsigned int column);
 		const float& operator()(const unsigned int row, const unsigned int column) const;
 
+		Mat4 operator+(const Mat4& mat) const;
+		Mat4 operator-(const Mat4& mat) const;
+
 		Mat4 operator*(const Mat4& mat) const;
 		Mat4 operator*(const float scalar) const;
 		Vec3 operator*(const Vec3& vec) const;
 
+		Mat4 operator+=(const Mat4& mat);
+		Mat4 operator-=(const Mat4& mat);
+		Mat4 operator*=(const Mat4& mat);
+
 		bool operator==(const Mat4& mat) const;
 		bool operator!=(const Mat4& mat) const;
+
+		const float* getElements() const;
 
 		Mat4 transpose() const;
 

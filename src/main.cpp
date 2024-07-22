@@ -5,9 +5,12 @@
 #include <iomanip>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 #include "engine/Shader.hpp"
 #include "maths/Mat4.hpp"
+#include "maths/Vec3.hpp"
+#include "maths/Utils.hpp"
 
 // Function to display current FPS and frame time in the window title
 void handleWindowTitle(GLFWwindow *window)
@@ -45,10 +48,39 @@ void printInformations(void) {
 	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
 }
 
+void autoResize(GLFWwindow *window)
+{
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+}
+
+Vec3 cameraPos = Vec3(0.0f, 0.0f, -3.0f);
+
 void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+
+	const float cameraSpeed = 0.05f;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += Vec3(0.0f, 0.0f, -cameraSpeed);
+
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos += Vec3(0.0f, 0.0f, cameraSpeed);
+
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos += Vec3(-cameraSpeed, 0.0f, 0.0f);
+
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += Vec3(cameraSpeed, 0.0f, 0.0f);
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		cameraPos += Vec3(0.0f, cameraSpeed, 0.0f);
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		cameraPos += Vec3(0.0f, -cameraSpeed, 0.0f);
 }
 
 int main(void)
@@ -151,18 +183,55 @@ int main(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	glEnable(GL_DEPTH_TEST);
+
+	Vec3 cubePositions[] = {
+		Vec3(0.0f, 0.0f, 0.0f),
+		Vec3(1.0f, 0.0f, 0.0f),
+		Vec3(-1.0f, 0.0f, 0.0f),
+	};
+
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
 		handleWindowTitle(window);
+		autoResize(window);
 		processInput(window);
+
+		// Clear
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
 
+		// model transform
+		const float time = glfwGetTime();
+
+		Mat4 view = Mat4::identity();
+		// view *= Mat4::translation(cameraPos);
+		view *= Mat4::lookAt(cameraPos, Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
+		// std::cout << view << std::endl;
+
+		Mat4 projection = Mat4::identity();
+		// projection *= Mat4::orthographic(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+		projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
+
+		shader.setMat4("projection", projection.transpose());
+		shader.setMat4("view", view.transpose());
+		shader.setFloat("time", time);
+
 		glBindVertexArray(VAO);
-		// Wireframe
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+		for (unsigned int i = 0; i < sizeof(cubePositions) / sizeof(Vec3); i++)
+		{
+			Mat4 model = Mat4::identity();
+			// model *= Mat4::rotation(time, Vec3(1.0f, 0.3f, 0.5f).normalize());
+			model *= Mat4::translation(cubePositions[i]);
+			shader.setMat4("model", model.transpose());
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iomanip>
 #include <string>
+#include <iostream>
 
 Mat4::Mat4()
 {
@@ -58,6 +59,26 @@ const float& Mat4::operator()(const unsigned int row, const unsigned int column)
 	return elements[column + row * 4];
 }
 
+Mat4 Mat4::operator+(const Mat4& mat) const
+{
+	Mat4 result;
+	for (unsigned int i = 0; i < 4 * 4; i++)
+	{
+		result.elements[i] = elements[i] + mat.elements[i];
+	}
+	return result;
+}
+
+Mat4 Mat4::operator-(const Mat4& mat) const
+{
+	Mat4 result;
+	for (unsigned int i = 0; i < 4 * 4; i++)
+	{
+		result.elements[i] = elements[i] - mat.elements[i];
+	}
+	return result;
+}
+
 Mat4 Mat4::operator*(const Mat4& mat) const
 {
 	Mat4 result;
@@ -89,10 +110,28 @@ Mat4 Mat4::operator*(const float scalar) const
 Vec3 Mat4::operator*(const Vec3& vec) const
 {
 	return Vec3(
-		elements[0 + 0 * 4] * vec.x + elements[0 + 1 * 4] * vec.y + elements[0 + 2 * 4] * vec.z + elements[0 + 3 * 4],
-		elements[1 + 0 * 4] * vec.x + elements[1 + 1 * 4] * vec.y + elements[1 + 2 * 4] * vec.z + elements[1 + 3 * 4],
-		elements[2 + 0 * 4] * vec.x + elements[2 + 1 * 4] * vec.y + elements[2 + 2 * 4] * vec.z + elements[2 + 3 * 4]
+		elements[0 + 0 * 4] * vec.x + elements[1 + 0 * 4] * vec.y + elements[2 + 0 * 4] * vec.z + elements[3 + 0 * 4],
+		elements[0 + 1 * 4] * vec.x + elements[1 + 1 * 4] * vec.y + elements[2 + 1 * 4] * vec.z + elements[3 + 1 * 4],
+		elements[0 + 2 * 4] * vec.x + elements[1 + 2 * 4] * vec.y + elements[2 + 2 * 4] * vec.z + elements[3 + 2 * 4]
 	);
+}
+
+Mat4 Mat4::operator+=(const Mat4& mat)
+{
+	*this = *this + mat;
+	return *this;
+}
+
+Mat4 Mat4::operator-=(const Mat4& mat)
+{
+	*this = *this - mat;
+	return *this;
+}
+
+Mat4 Mat4::operator*=(const Mat4& mat)
+{
+	*this = *this * mat;
+	return *this;
 }
 
 bool Mat4::operator==(const Mat4& mat) const
@@ -110,6 +149,11 @@ bool Mat4::operator==(const Mat4& mat) const
 bool Mat4::operator!=(const Mat4& mat) const
 {
 	return !(*this == mat);
+}
+
+const float* Mat4::getElements() const
+{
+	return elements;
 }
 
 Mat4 Mat4::transpose() const
@@ -133,16 +177,16 @@ Mat4 Mat4::identity()
 Mat4 Mat4::lookAt(const Vec3& position, const Vec3& target, const Vec3& worldUp)
 {
 	// ┌                 ┐
-	// │  rx  ry  rz  tx │
-	// │  ux  uy  uz  ty │
+	// │  rx  ry  rz -tx │
+	// │  ux  uy  uz -ty │
 	// │ -fx -fy -fz  tz │
 	// │   0   0   0   1 │
 	// └                 ┘
 	Vec3 forward = (target - position).normalize();
 	Vec3 right = forward.cross(worldUp).normalize();
-	Vec3 up = right.cross(forward);
+	Vec3 up = right.cross(forward).normalize();
 
-	Mat4 result;
+	Mat4 result(1.0f);
 	result(0, 0) = right.x;
 	result(0, 1) = right.y;
 	result(0, 2) = right.z;
@@ -168,7 +212,7 @@ Mat4 Mat4::lookAt(const Vec3& position, const Vec3& target, const Vec3& worldUp)
 
 Mat4 Mat4::orthographic(const float left, const float right, const float bottom, const float top, const float near, const float far)
 {
-	Mat4 result;
+	Mat4 result(1.0f);
 	result(0, 0) = 2.0f / (right - left);
 	result(1, 1) = 2.0f / (top - bottom);
 	result(2, 2) = 2.0f / (near - far);
@@ -187,7 +231,7 @@ Mat4 Mat4::perspective(const float fov, const float aspectRatio, const float nea
 	// │  0  0  b  c │
 	// │  0  0 -1  0 │
 	// └             ┘
-	Mat4 result;
+	Mat4 result(1.0f);
 	float q = 1.0f / std::tan(0.5f * fov);
 	float a = q / aspectRatio;
 	float b = (near + far) / (near - far);
@@ -195,8 +239,9 @@ Mat4 Mat4::perspective(const float fov, const float aspectRatio, const float nea
 	result(0, 0) = a;
 	result(1, 1) = q;
 	result(2, 2) = b;
-	result(2, 3) = -1.0f;
-	result(3, 2) = c;
+	result(2, 3) = c;
+	result(3, 2) = -1.0f;
+	result(3, 3) = 0.0f;
 	return result;
 }
 
@@ -208,7 +253,7 @@ Mat4 Mat4::translation(const Vec3& translation)
 	// │  0  0  1  z │
 	// │  0  0  0  1 │
 	// └             ┘
-	Mat4 result;
+	Mat4 result(1.0f);
 	result(0, 3) = translation.x;
 	result(1, 3) = translation.y;
 	result(2, 3) = translation.z;
@@ -218,7 +263,7 @@ Mat4 Mat4::translation(const Vec3& translation)
 // https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
 Mat4 Mat4::rotation(const float rad, const Vec3& axis)
 {
-	Mat4 result;
+	Mat4 result(1.0f);
 	float c = std::cos(rad);
 	float ic = 1.0f - c;
 	float s = std::sin(rad);
@@ -249,7 +294,7 @@ Mat4 Mat4::scale(const Vec3& scale)
 	// │  0  0  z  0 │
 	// │  0  0  0  1 │
 	// └             ┘
-	Mat4 result;
+	Mat4 result(1.0f);
 	result(0, 0) = scale.x;
 	result(1, 1) = scale.y;
 	result(2, 2) = scale.z;
