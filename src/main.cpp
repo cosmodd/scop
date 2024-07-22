@@ -208,12 +208,9 @@ int main(void)
 		const float time = glfwGetTime();
 
 		Mat4 view = Mat4::identity();
-		// view *= Mat4::translation(cameraPos);
 		view *= Mat4::lookAt(cameraPos, Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
-		// std::cout << view << std::endl;
 
 		Mat4 projection = Mat4::identity();
-		// projection *= Mat4::orthographic(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 		projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
 		shader.setMat4("projection", projection.transpose());
@@ -225,7 +222,7 @@ int main(void)
 		for (unsigned int i = 0; i < sizeof(cubePositions) / sizeof(Vec3); i++)
 		{
 			Mat4 model = Mat4::identity();
-			// model *= Mat4::rotation(time, Vec3(1.0f, 0.3f, 0.5f).normalize());
+			model *= Mat4::rotation(time, Vec3(0.0f, 1.0f, 0.0f).normalize());
 			model *= Mat4::translation(cubePositions[i]);
 			shader.setMat4("model", model.transpose());
 
