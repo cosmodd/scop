@@ -250,7 +250,7 @@ Mat4 Mat4::infinitePerspective(const float fov, const float aspectRatio, const f
 	// ┌             ┐
 	// │  a  0  0  0 │
 	// │  0  q  0  0 │
-	// │  0  0  1  c │
+	// │  0  0 -1 -c │
 	// │  0  0 -1  0 │
 	// └             ┘
 	Mat4 result(1.0f);
@@ -259,8 +259,8 @@ Mat4 Mat4::infinitePerspective(const float fov, const float aspectRatio, const f
 	float c = near;
 	result(0, 0) = a;
 	result(1, 1) = q;
-	result(2, 2) = 1.0f;
-	result(2, 3) = c;
+	result(2, 2) = -1.0f;
+	result(2, 3) = -c;
 	result(3, 2) = -1.0f;
 	result(3, 3) = 0.0f;
 	return result;
