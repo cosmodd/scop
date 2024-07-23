@@ -5,6 +5,8 @@
 SRCS	=	src/main.cpp \
 			src/glad.c \
 			src/engine/Shader.cpp \
+			src/engine/Camera.cpp \
+			src/engine/Texture.cpp \
 			src/utils/FileSystem.cpp \
 			src/maths/Mat4.cpp \
 			src/maths/Vec3.cpp \

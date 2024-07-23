@@ -6,12 +6,17 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <cmath>
+#include <vector>
 
 #include "engine/Shader.hpp"
 #include "engine/Camera.hpp"
+#include "engine/Texture.hpp"
 #include "maths/Mat4.hpp"
 #include "maths/Vec3.hpp"
 #include "maths/Utils.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 // Function to display current FPS and frame time in the window title
 void handleWindowTitle(GLFWwindow *window)
@@ -98,17 +103,17 @@ void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 int main(void)
 {
 	float vertices[] = {
-		// Front
-		-0.5f, -0.5f, 0.5f, // Bottom Left
-		0.5f, -0.5f, 0.5f,  // Bottom Right
-		0.5f, 0.5f, 0.5f,   // Top Right
-		-0.5f, 0.5f, 0.5f,  // Top Left
+		// Front             // UV
+		-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, // Bottom Left
+		 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, // Bottom Right
+		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, // Top Right
+		-0.5f,  0.5f,  0.5f, 0.0f, 1.0f, // Top Left
 
-		// Back
-		-0.5f, -0.5f, -0.5f, // Bottom Left
-		0.5f, -0.5f, -0.5f,  // Bottom Right
-		0.5f, 0.5f, -0.5f,   // Top Right
-		-0.5f, 0.5f, -0.5f,  // Top Left
+		// Back              // UV
+		-0.5f, -0.5f, -0.5f, 1.0f, 0.0f, // Bottom Left
+		 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, // Bottom Right
+		 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, // Top Right
+		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, // Top Left
 	};
 
 	unsigned int indices[] = {
@@ -169,6 +174,7 @@ int main(void)
 	printInformations();
 
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
+	Texture texture("./assets/textures/netherrack.png");
 
 	unsigned int VBO, VAO, EBO;
 
@@ -188,20 +194,31 @@ int main(void)
 
 	// Vertex Attributes
 	// Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(0);
+	// UV coordinates
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	// Unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
-	Vec3 cubePositions[] = {
-		Vec3(0.0f, 0.0f, 0.0f),
-		Vec3(1.0f, 0.0f, 0.0f),
-		Vec3(-1.0f, 0.0f, 0.0f),
-	};
+	std::vector<Vec3> cubes;
+
+	const unsigned int amount = 20;
+	const float distance = 5.0f;
+
+	for (float angle = 0; angle < 2 * M_PI; angle += 2 * M_PI / amount)
+	{
+		float x = std::cos(angle) * distance;
+		float z = std::sin(angle) * distance;
+		cubes.push_back(Vec3(x, 0.0f, z));
+	}
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
@@ -235,16 +252,18 @@ int main(void)
 		shader.setMat4("view", camera.getViewMatrix().transpose());
 		shader.setFloat("time", currentTime);
 
+		texture.bind();
+
 		glBindVertexArray(VAO);
 
-		for (unsigned int i = 0; i < sizeof(cubePositions) / sizeof(Vec3); i++)
+		for (unsigned int i = 0; i < cubes.size(); i++)
 		{
 			Mat4 model = Mat4::identity();
-			model *= Mat4::rotation(time, Vec3(0.0f, 1.0f, 0.0f).normalize());
-			model *= Mat4::translation(cubePositions[i]);
+			model *= Mat4::translation(cubes[i]);
+			// model *= Mat4::rotation(currentTime, Vec3(1.0f, 1.0f, 0.0f).normalize());
+			// model *= Mat4::scale(Vec3(std::sin(currentTime + i) * 0.5f + 1.0f));
 			shader.setMat4("model", model.transpose());
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		}
 
