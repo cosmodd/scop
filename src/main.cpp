@@ -228,7 +228,8 @@ int main(void)
 		shader.use();
 
 		Mat4 projection = Mat4::identity();
-		projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
+		// projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
+		projection *= Mat4::infinitePerspective(maths::radians(45.0f), aspectRatio, 0.1f);
 
 		shader.setMat4("projection", projection.transpose());
 		shader.setMat4("view", camera.getViewMatrix().transpose());
