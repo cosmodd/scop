@@ -8,6 +8,7 @@
 #include <cmath>
 
 #include "engine/Shader.hpp"
+#include "engine/Camera.hpp"
 #include "maths/Mat4.hpp"
 #include "maths/Vec3.hpp"
 #include "maths/Utils.hpp"
@@ -48,39 +49,50 @@ void printInformations(void) {
 	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
 }
 
-void autoResize(GLFWwindow *window)
+void resize(GLFWwindow *window, int *width, int *height)
 {
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	glViewport(0, 0, width, height);
+	glfwGetFramebufferSize(window, width, height);
+	glViewport(0, 0, *width, *height);
 }
 
-Vec3 cameraPos = Vec3(0.0f, 0.0f, -3.0f);
+Camera camera = Camera(Vec3(0.0f, 10.0f, 10.0f), -90.0f, -45.0f);
 
-void processInput(GLFWwindow *window)
+void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	const float cameraSpeed = 0.05f;
+	// Camera movement with arrow keys
+	const float cameraSpeed = 50.0f * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		camera.pitch += cameraSpeed;
+		if (camera.pitch > 89.0f)
+			camera.pitch = 89.0f;
+		camera.updateCameraVectors();
+	}
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += Vec3(0.0f, 0.0f, -cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		camera.pitch -= cameraSpeed;
+		if (camera.pitch < -89.0f)
+			camera.pitch = -89.0f;
+		camera.updateCameraVectors();
+	}
 
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos += Vec3(0.0f, 0.0f, cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		camera.yaw -= cameraSpeed;
+		camera.updateCameraVectors();
+	}
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos += Vec3(-cameraSpeed, 0.0f, 0.0f);
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		camera.yaw += cameraSpeed;
+		camera.updateCameraVectors();
+	}
 
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += Vec3(cameraSpeed, 0.0f, 0.0f);
-
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		cameraPos += Vec3(0.0f, cameraSpeed, 0.0f);
-
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		cameraPos += Vec3(0.0f, -cameraSpeed, 0.0f);
+	camera.processKeyboardInput(window, deltaTime);
 }
 
 int main(void)
@@ -194,9 +206,20 @@ int main(void)
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
+
+		// Calculate delta time
+		static float lastTime = 0.0f;
+		float currentTime = glfwGetTime();
+		float deltaTime = currentTime - lastTime;
+		lastTime = currentTime;
+
+		// Resize
+		int width, height;
+		resize(window, &width, &height);
+		float aspectRatio = (float)width / (float)height;
+
 		handleWindowTitle(window);
-		autoResize(window);
-		processInput(window);
+		handleKeyboardInput(window, deltaTime);
 
 		// Clear
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -204,18 +227,12 @@ int main(void)
 
 		shader.use();
 
-		// model transform
-		const float time = glfwGetTime();
-
-		Mat4 view = Mat4::identity();
-		view *= Mat4::lookAt(cameraPos, Vec3(0.0f, 0.0f, 0.0f), Vec3(0.0f, 1.0f, 0.0f));
-
 		Mat4 projection = Mat4::identity();
 		projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
 		shader.setMat4("projection", projection.transpose());
-		shader.setMat4("view", view.transpose());
-		shader.setFloat("time", time);
+		shader.setMat4("view", camera.getViewMatrix().transpose());
+		shader.setFloat("time", currentTime);
 
 		glBindVertexArray(VAO);
 
