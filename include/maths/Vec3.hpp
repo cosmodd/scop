@@ -7,6 +7,7 @@ class Vec3
 		float x, y, z;
 
 		Vec3();
+		Vec3(float scalar);
 		Vec3(float x, float y, float z);
 		Vec3(const Vec3& vec);
 		Vec3& operator=(const Vec3& vec);
