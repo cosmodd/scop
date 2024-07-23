@@ -139,7 +139,9 @@ int main(void)
 
 	glEnable(GL_DEPTH_TEST);
 
-	Mesh mesh = loadMesh("./assets/cosmo.obj");
+	Mesh mesh = loadMesh("./assets/42.obj");
+
+	Vec3 lightPos(-5.0f, 0.0f, 0.0f);
 
 	// for (unsigned int i = 0; i < mesh.vertices.size(); i++)
 	// {
@@ -186,10 +188,12 @@ int main(void)
 
 		Mat4 model = Mat4::identity();
 
+		shader.setFloat("time", currentTime);
 		shader.setMat4("projection", projection.transpose());
 		shader.setMat4("view", camera.getViewMatrix().transpose());
 		shader.setMat4("model", model.transpose());
-		shader.setFloat("time", currentTime);
+		shader.setVec3("lightPos", lightPos);
+		shader.setVec3("viewPos", camera.position);
 
 		texture.bind();
 		mesh.draw();
