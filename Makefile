@@ -7,6 +7,7 @@ SRCS	=	src/main.cpp \
 			src/engine/Shader.cpp \
 			src/engine/Camera.cpp \
 			src/engine/Texture.cpp \
+			src/engine/Mesh.cpp \
 			src/utils/FileSystem.cpp \
 			src/maths/Mat4.cpp \
 			src/maths/Vec3.cpp \

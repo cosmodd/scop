@@ -11,6 +11,7 @@
 #include "engine/Shader.hpp"
 #include "engine/Camera.hpp"
 #include "engine/Texture.hpp"
+#include "engine/Mesh.hpp"
 #include "maths/Mat4.hpp"
 #include "maths/Vec3.hpp"
 #include "maths/Utils.hpp"
@@ -60,7 +61,7 @@ void resize(GLFWwindow *window, int *width, int *height)
 	glViewport(0, 0, *width, *height);
 }
 
-Camera camera = Camera(Vec3(0.0f, 10.0f, 10.0f), -90.0f, -45.0f);
+Camera camera = Camera(Vec3(0.0f, 0.0f, 10.0f), -90.0f, 0.0f);
 
 void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 {
@@ -102,46 +103,6 @@ void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 
 int main(void)
 {
-	float vertices[] = {
-		// Front             // UV
-		-0.5f, -0.5f,  0.5f, 0.0f, 0.0f, // Bottom Left
-		 0.5f, -0.5f,  0.5f, 1.0f, 0.0f, // Bottom Right
-		 0.5f,  0.5f,  0.5f, 1.0f, 1.0f, // Top Right
-		-0.5f,  0.5f,  0.5f, 0.0f, 1.0f, // Top Left
-
-		// Back              // UV
-		-0.5f, -0.5f, -0.5f, 1.0f, 0.0f, // Bottom Left
-		 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, // Bottom Right
-		 0.5f,  0.5f, -0.5f, 0.0f, 1.0f, // Top Right
-		-0.5f,  0.5f, -0.5f, 1.0f, 1.0f, // Top Left
-	};
-
-	unsigned int indices[] = {
-		// Front
-		0, 1, 2,
-		2, 3, 0,
-
-		// Right
-		1, 5, 6,
-		6, 2, 1,
-
-		// Back
-		5, 4, 7,
-		7, 6, 5,
-
-		// Left
-		4, 0, 3,
-		3, 7, 4,
-
-		// Bottom
-		4, 5, 1,
-		1, 0, 4,
-
-		// Top
-		3, 2, 6,
-		6, 7, 3,
-	};
-
 	if (!glfwInit())
 	{
 		std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -174,51 +135,27 @@ int main(void)
 	printInformations();
 
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
-	Texture texture("./assets/textures/netherrack.png");
-
-	unsigned int VBO, VAO, EBO;
-
-	// VAO
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	// VBO
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	// EBO
-	glGenBuffers(1, &EBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-	// Vertex Attributes
-	// Position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(0);
-	// UV coordinates
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	// Unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	Texture texture("./assets/textures/wood.png");
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
 
-	std::vector<Vec3> cubes;
+	Mesh mesh = loadMesh("./assets/cosmo.obj");
 
-	const unsigned int amount = 20;
-	const float distance = 5.0f;
+	// for (unsigned int i = 0; i < mesh.vertices.size(); i++)
+	// {
+	// 	std::cout << "Vertex " << i << ":" << std::endl;
+	// 	std::cout << "├╴ Position: " << mesh.vertices[i].position << std::endl;
+	// 	std::cout << "├╴ UV: " << mesh.vertices[i].texCoords << std::endl;
+	// 	std::cout << "└╴ Normal: " << mesh.vertices[i].normal << std::endl;
+	// }
 
-	for (float angle = 0; angle < 2 * M_PI; angle += 2 * M_PI / amount)
-	{
-		float x = std::cos(angle) * distance;
-		float z = std::sin(angle) * distance;
-		cubes.push_back(Vec3(x, 0.0f, z));
-	}
+	// for (unsigned int i = 0; i < mesh.indices.size(); i += 3)
+	// {
+	// 	std::cout << "Face " << i / 3 << ":" << std::endl;
+	// 	std::cout << "├╴ Vertex 1: " << mesh.vertices[mesh.indices[i]].position << std::endl;
+	// 	std::cout << "├╴ Vertex 2: " << mesh.vertices[mesh.indices[i + 1]].position << std::endl;
+	// 	std::cout << "└╴ Vertex 3: " << mesh.vertices[mesh.indices[i + 2]].position << std::endl;
+	// }
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
@@ -245,27 +182,17 @@ int main(void)
 		shader.use();
 
 		Mat4 projection = Mat4::identity();
-		// projection *= Mat4::perspective(maths::radians(45.0f), 1.0f, 0.1f, 100.0f);
 		projection *= Mat4::infinitePerspective(maths::radians(45.0f), aspectRatio, 0.1f);
+
+		Mat4 model = Mat4::identity();
 
 		shader.setMat4("projection", projection.transpose());
 		shader.setMat4("view", camera.getViewMatrix().transpose());
+		shader.setMat4("model", model.transpose());
 		shader.setFloat("time", currentTime);
 
 		texture.bind();
-
-		glBindVertexArray(VAO);
-
-		for (unsigned int i = 0; i < cubes.size(); i++)
-		{
-			Mat4 model = Mat4::identity();
-			model *= Mat4::translation(cubes[i]);
-			// model *= Mat4::rotation(currentTime, Vec3(1.0f, 1.0f, 0.0f).normalize());
-			// model *= Mat4::scale(Vec3(std::sin(currentTime + i) * 0.5f + 1.0f));
-			shader.setMat4("model", model.transpose());
-
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-		}
+		mesh.draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
