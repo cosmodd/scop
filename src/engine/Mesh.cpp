@@ -145,10 +145,10 @@ Mesh loadMesh(const std::string& path)
 
 		vertex.position = positions[vertexIndices[i]];
 
-		if (!uvs.empty())
+		if (!uvs.empty() && i < uvIndices.size())
 			vertex.texCoords = uvs[uvIndices[i]];
 
-		if (!normals.empty())
+		if (!normals.empty() && i < normalIndices.size())
 			vertex.normal = normals[normalIndices[i]];
 
 		vertices.push_back(vertex);
