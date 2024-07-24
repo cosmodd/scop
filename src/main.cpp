@@ -137,6 +137,7 @@ int main(void)
 	Mesh mesh = loadMesh("./assets/container.obj");
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 	Texture texture("./assets/textures/wood.png");
+	Vec3 lightPos(0.0f, 3.0f, 5.0f);
 
 	glEnable(GL_DEPTH_TEST);
 
