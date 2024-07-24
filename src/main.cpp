@@ -70,7 +70,7 @@ void resize(GLFWwindow *window, int *width, int *height)
 std::map<int, bool> pressedKeys;
 
 bool rotateObject = true;
-OrbitCamera camera = OrbitCamera(Vec3(0.0f), 10.0f);
+OrbitCamera camera = OrbitCamera(Vec3(0.0f), 15.0f);
 
 bool isKeyPressed(GLFWwindow *window, int key)
 {
@@ -134,7 +134,7 @@ void handleMouseInput(GLFWwindow *window, double xpos, double ypos)
 
 int main(int ac, char **av)
 {
-	Vec3 lightPos(0.0f, 10.0f, 0.0f);
+	Vec3 lightPos(10.0f, 5.0f, 10.0f);
 
 	if (ac < 2)
 	{
