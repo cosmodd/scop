@@ -12,6 +12,9 @@ uniform sampler2D objectTexture;
 
 void main()
 {
+	if (texture(objectTexture, f_uv).a < 0.1)
+		discard;
+
 	// Light calculations
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
