@@ -134,6 +134,7 @@ int main(void)
 	handleWindowTitle(window);
 	printInformations();
 
+	Mesh mesh = loadMesh("./assets/container.obj");
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 	Texture texture("./assets/textures/wood.png");
 
