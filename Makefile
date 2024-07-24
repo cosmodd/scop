@@ -6,6 +6,7 @@ SRCS	=	src/main.cpp \
 			src/glad.c \
 			src/engine/Shader.cpp \
 			src/engine/Camera.cpp \
+			src/engine/OrbitCamera.cpp \
 			src/engine/Texture.cpp \
 			src/engine/Mesh.cpp \
 			src/utils/FileSystem.cpp \

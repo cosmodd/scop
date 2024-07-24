@@ -7,9 +7,10 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <vector>
+#include <map>
 
 #include "engine/Shader.hpp"
-#include "engine/Camera.hpp"
+#include "engine/OrbitCamera.hpp"
 #include "engine/Texture.hpp"
 #include "engine/Mesh.hpp"
 #include "maths/Mat4.hpp"
@@ -19,7 +20,22 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-// Function to display current FPS and frame time in the window title
+void printInformations(void) {
+	std::cout << "Versions:" << std::endl;
+	std::cout << "├╴ OpenGL " << glGetString(GL_VERSION) << std::endl;
+	std::cout << "└╴ GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+
+	std::cout << "GPU:" << std::endl;
+	std::cout << "├╴ Vendor: " << glGetString(GL_VENDOR) << std::endl;
+	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
+}
+
+void error(const std::string& message)
+{
+	std::cerr << "\e[101;1m ERR \e[0m " << message << std::endl;
+	exit(EXIT_FAILURE);
+}
+
 void handleWindowTitle(GLFWwindow *window)
 {
 	static double previousTime = glfwGetTime();
@@ -45,67 +61,93 @@ void handleWindowTitle(GLFWwindow *window)
 	}
 }
 
-void printInformations(void) {
-	std::cout << "Versions:" << std::endl;
-	std::cout << "├╴ OpenGL " << glGetString(GL_VERSION) << std::endl;
-	std::cout << "└╴ GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
-
-	std::cout << "GPU:" << std::endl;
-	std::cout << "├╴ Vendor: " << glGetString(GL_VENDOR) << std::endl;
-	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
-}
-
 void resize(GLFWwindow *window, int *width, int *height)
 {
 	glfwGetFramebufferSize(window, width, height);
 	glViewport(0, 0, *width, *height);
 }
 
-Camera camera = Camera(Vec3(0.0f, 0.0f, 10.0f), -90.0f, 0.0f);
+std::map<int, bool> pressedKeys;
+
+bool rotateObject = true;
+OrbitCamera camera = OrbitCamera(Vec3(0.0f), 10.0f);
+
+bool isKeyPressed(GLFWwindow *window, int key)
+{
+	if (glfwGetKey(window, key) == GLFW_PRESS && !pressedKeys[key])
+	{
+		pressedKeys[key] = true;
+		return true;
+	}
+	else if (glfwGetKey(window, key) == GLFW_RELEASE)
+		pressedKeys[key] = false;
+
+	return false;
+}
 
 void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+
+	if (isKeyPressed(window, GLFW_KEY_ESCAPE))
 		glfwSetWindowShouldClose(window, true);
 
-	// Camera movement with arrow keys
-	const float cameraSpeed = 50.0f * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-	{
-		camera.pitch += cameraSpeed;
-		if (camera.pitch > 89.0f)
-			camera.pitch = 89.0f;
-		camera.updateCameraVectors();
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-	{
-		camera.pitch -= cameraSpeed;
-		if (camera.pitch < -89.0f)
-			camera.pitch = -89.0f;
-		camera.updateCameraVectors();
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-	{
-		camera.yaw -= cameraSpeed;
-		camera.updateCameraVectors();
-	}
-
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-	{
-		camera.yaw += cameraSpeed;
-		camera.updateCameraVectors();
-	}
+	if (isKeyPressed(window, GLFW_KEY_R))
+		rotateObject = !rotateObject;
 
 	camera.processKeyboardInput(window, deltaTime);
 }
 
-int main(void)
+// Only move camera when mouse is pressed
+// Calculate the offset from start position (when pressed) to current position
+// When mouse is released, reset
+void handleMouseInput(GLFWwindow *window, double xpos, double ypos)
 {
+	static bool moving = false;
+	static float startX = 0.0f;
+	static float startY = 0.0f;
+	static float startPitch = 0.0f;
+	static float startYaw = 0.0f;
+
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !moving)
+	{
+		moving = true;
+		startX = xpos;
+		startY = ypos;
+		startPitch = camera.pitch;
+		startYaw = camera.yaw;
+	}
+
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && moving)
+		moving = false;
+
+	if (!moving)
+		return;
+
+	const float sensitivity = 0.5f;
+	float yaw = startYaw + (xpos - startX) * sensitivity;
+	float pitch = startPitch + (ypos - startY) * sensitivity;
+
+	camera.yaw = yaw;
+	camera.pitch = maths::clamp(pitch, -89.0f, 89.0f);
+	camera.updateCamera();
+}
+
+int main(int ac, char **av)
+{
+	Vec3 lightPos(0.0f, 10.0f, 0.0f);
+
+	if (ac < 2)
+	{
+		std::cerr << "Usage: " << av[0] << " <objectPath> [texturePath]" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	const std::string objectPath = av[1];
+	const std::string texturePath = (ac == 3) ? av[2] : "./assets/textures/wood.png";
+
 	if (!glfwInit())
 	{
-		std::cerr << "Failed to initialize GLFW" << std::endl;
+		error("Failed to initialize GLFW");
 		return EXIT_FAILURE;
 	}
 
@@ -118,7 +160,7 @@ int main(void)
 	GLFWwindow *window = glfwCreateWindow(800, 800, "scop", NULL, NULL);
 	if (!window)
 	{
-		std::cerr << "Failed to create GLFW window" << std::endl;
+		error("Failed to create GLFW window");
 		glfwTerminate();
 		return EXIT_FAILURE;
 	}
@@ -127,44 +169,34 @@ int main(void)
 	// Load GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		std::cerr << "Failed to initialize GLAD" << std::endl;
+		error("Failed to initialize GLAD");
 		return EXIT_FAILURE;
 	}
+
+	Mesh mesh = loadMesh(objectPath);
+	Texture texture(texturePath);
+	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 
 	handleWindowTitle(window);
 	printInformations();
 
-	Mesh mesh = loadMesh("./assets/container.obj");
-	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
-	Texture texture("./assets/textures/wood.png");
-	Vec3 lightPos(0.0f, 3.0f, 5.0f);
-
 	glEnable(GL_DEPTH_TEST);
+
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetCursorPosCallback(window, handleMouseInput);
+	glfwSetScrollCallback(window, [](GLFWwindow *window, double xoffset, double yoffset) {
+		(void)window;
+		(void)xoffset;
+		camera.processMouseScroll(yoffset);
+	});
 
 	BoundingBox boundingBox = mesh.getBoundingBox();
 	Vec3 bbCenter = (boundingBox.min + boundingBox.max) / 2.0f;
 	float modelSize = (boundingBox.max - boundingBox.min).magnitude();
 
-	// for (unsigned int i = 0; i < mesh.vertices.size(); i++)
-	// {
-	// 	std::cout << "Vertex " << i << ":" << std::endl;
-	// 	std::cout << "├╴ Position: " << mesh.vertices[i].position << std::endl;
-	// 	std::cout << "├╴ UV: " << mesh.vertices[i].texCoords << std::endl;
-	// 	std::cout << "└╴ Normal: " << mesh.vertices[i].normal << std::endl;
-	// }
-
-	// for (unsigned int i = 0; i < mesh.indices.size(); i += 3)
-	// {
-	// 	std::cout << "Face " << i / 3 << ":" << std::endl;
-	// 	std::cout << "├╴ Vertex 1: " << mesh.vertices[mesh.indices[i]].position << std::endl;
-	// 	std::cout << "├╴ Vertex 2: " << mesh.vertices[mesh.indices[i + 1]].position << std::endl;
-	// 	std::cout << "└╴ Vertex 3: " << mesh.vertices[mesh.indices[i + 2]].position << std::endl;
-	// }
-
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
-
 		// Calculate delta time
 		static float lastTime = 0.0f;
 		float currentTime = glfwGetTime();
@@ -189,8 +221,9 @@ int main(void)
 		projection *= Mat4::infinitePerspective(maths::radians(45.0f), aspectRatio, 0.1f);
 
 		Mat4 model = Mat4::identity();
-		model *= Mat4::scale(Vec3(4.0f / modelSize));
-		model *= Mat4::rotation(0.5f * currentTime, Vec3(0.0f, 1.0f, 0.0f));
+		model *= Mat4::scale(Vec3(10.0f / modelSize));
+		if (rotateObject)
+			model *= Mat4::rotation(0.2f * currentTime, Vec3(0.0f, 1.0f, 0.0f));
 		model *= Mat4::translation(bbCenter * -1.0f);
 
 		shader.setFloat("time", currentTime);
