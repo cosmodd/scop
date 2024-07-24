@@ -12,6 +12,11 @@ struct Vertex
 	Vec3 normal;
 };
 
+struct BoundingBox
+{
+	Vec3 min, max;
+};
+
 class Mesh
 {
 	private:
@@ -24,6 +29,8 @@ class Mesh
 
 		Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
+		BoundingBox getBoundingBox();
+		
 		void draw();
 };
 

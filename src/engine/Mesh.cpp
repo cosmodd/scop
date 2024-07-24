@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <limits>
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices):
 	vertices(vertices),
@@ -31,6 +32,33 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices):
 	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0);
+}
+
+BoundingBox Mesh::getBoundingBox()
+{
+	BoundingBox boundingBox;
+
+	boundingBox.min = Vec3(std::numeric_limits<float>::max());
+	boundingBox.max = Vec3(std::numeric_limits<float>::min());
+
+	for (const Vertex& vertex : vertices)
+	{
+		if (vertex.position.x < boundingBox.min.x)
+			boundingBox.min.x = vertex.position.x;
+		if (vertex.position.y < boundingBox.min.y)
+			boundingBox.min.y = vertex.position.y;
+		if (vertex.position.z < boundingBox.min.z)
+			boundingBox.min.z = vertex.position.z;
+
+		if (vertex.position.x > boundingBox.max.x)
+			boundingBox.max.x = vertex.position.x;
+		if (vertex.position.y > boundingBox.max.y)
+			boundingBox.max.y = vertex.position.y;
+		if (vertex.position.z > boundingBox.max.z)
+			boundingBox.max.z = vertex.position.z;
+	}
+
+	return boundingBox;
 }
 
 void Mesh::draw()

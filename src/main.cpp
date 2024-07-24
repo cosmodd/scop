@@ -139,9 +139,9 @@ int main(void)
 
 	glEnable(GL_DEPTH_TEST);
 
-	Mesh mesh = loadMesh("./assets/42.obj");
-
-	Vec3 lightPos(-5.0f, 0.0f, 0.0f);
+	BoundingBox boundingBox = mesh.getBoundingBox();
+	Vec3 bbCenter = (boundingBox.min + boundingBox.max) / 2.0f;
+	float modelSize = (boundingBox.max - boundingBox.min).magnitude();
 
 	// for (unsigned int i = 0; i < mesh.vertices.size(); i++)
 	// {
@@ -187,6 +187,9 @@ int main(void)
 		projection *= Mat4::infinitePerspective(maths::radians(45.0f), aspectRatio, 0.1f);
 
 		Mat4 model = Mat4::identity();
+		model *= Mat4::scale(Vec3(4.0f / modelSize));
+		model *= Mat4::rotation(0.5f * currentTime, Vec3(0.0f, 1.0f, 0.0f));
+		model *= Mat4::translation(bbCenter * -1.0f);
 
 		shader.setFloat("time", currentTime);
 		shader.setMat4("projection", projection.transpose());
