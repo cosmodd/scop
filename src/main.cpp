@@ -20,7 +20,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-void printInformations(void) {
+void printInformations(void)
+{
 	std::cout << "Versions:" << std::endl;
 	std::cout << "├╴ OpenGL " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "└╴ GLSL " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
@@ -30,7 +31,7 @@ void printInformations(void) {
 	std::cout << "└╴ Renderer: " << glGetString(GL_RENDERER) << std::endl;
 }
 
-void error(const std::string& message)
+void error(const std::string &message)
 {
 	std::cerr << "\e[101;1m ERR \e[0m " << message << std::endl;
 	exit(EXIT_FAILURE);
@@ -70,6 +71,7 @@ void resize(GLFWwindow *window, int *width, int *height)
 std::map<int, bool> pressedKeys;
 
 bool rotateObject = true;
+bool showNormals = false;
 OrbitCamera camera = OrbitCamera(Vec3(0.0f), 15.0f);
 
 bool isKeyPressed(GLFWwindow *window, int key)
@@ -93,6 +95,9 @@ void handleKeyboardInput(GLFWwindow *window, float deltaTime)
 
 	if (isKeyPressed(window, GLFW_KEY_R))
 		rotateObject = !rotateObject;
+
+	if (isKeyPressed(window, GLFW_KEY_N))
+		showNormals = !showNormals;
 
 	camera.processKeyboardInput(window, deltaTime);
 }
@@ -177,6 +182,9 @@ int main(int ac, char **av)
 	Texture texture(texturePath);
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 
+	if (ac < 3)
+		showNormals = true;
+
 	handleWindowTitle(window);
 	printInformations();
 
@@ -232,6 +240,7 @@ int main(int ac, char **av)
 		shader.setMat4("model", model.transpose());
 		shader.setVec3("lightPos", lightPos);
 		shader.setVec3("viewPos", camera.position);
+		shader.setBool("showNormal", showNormals);
 
 		texture.bind();
 		mesh.draw();
