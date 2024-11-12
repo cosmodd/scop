@@ -137,6 +137,35 @@ void handleMouseInput(GLFWwindow *window, double xpos, double ypos)
 	camera.updateCamera();
 }
 
+Mesh mesh;
+Texture texture;
+
+void handleFileDrop(GLFWwindow *window, int count, const char **paths) {
+	(void) window;
+	bool alreadyLoadedObject = false;
+	bool alreadyLoadedTexture = false;
+
+	for (int i = 0; i < count; i++) {
+		std::string path = paths[i];
+		std::string file = path.substr(path.find_last_of('/') + 1);
+		std::string extension = file.substr(file.find_first_of('.') + 1);
+
+		if (extension == "obj") {
+			std::cout << "Loading mesh: " << path << std::endl;
+			mesh = loadMesh(path);
+			alreadyLoadedObject = true;
+			break;
+		} else if (extension == "png" || extension == "jpg" || extension == "jpeg") {
+			std::cout << "Loading texture: " << path << std::endl;
+			texture = Texture(path);
+			alreadyLoadedTexture = true;
+			if (showNormals)
+				showNormals = false;
+			break;
+		}
+	}
+}
+
 int main(int ac, char **av)
 {
 	Vec3 lightPos(10.0f, 5.0f, 10.0f);
@@ -178,8 +207,8 @@ int main(int ac, char **av)
 		return EXIT_FAILURE;
 	}
 
-	Mesh mesh = loadMesh(objectPath);
-	Texture texture(texturePath);
+	mesh = loadMesh(objectPath);
+	texture = Texture(texturePath);
 	Shader shader("./src/shaders/default.vs", "./src/shaders/default.fs");
 
 	if (ac < 3)
@@ -197,10 +226,7 @@ int main(int ac, char **av)
 		(void)xoffset;
 		camera.processMouseScroll(yoffset);
 	});
-
-	BoundingBox boundingBox = mesh.getBoundingBox();
-	Vec3 bbCenter = (boundingBox.min + boundingBox.max) / 2.0f;
-	float modelSize = (boundingBox.max - boundingBox.min).magnitude();
+	glfwSetDropCallback(window, handleFileDrop);
 
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
@@ -229,10 +255,10 @@ int main(int ac, char **av)
 		projection *= Mat4::infinitePerspective(maths::radians(45.0f), aspectRatio, 0.1f);
 
 		Mat4 model = Mat4::identity();
-		model *= Mat4::scale(Vec3(10.0f / modelSize));
+		model *= Mat4::scale(Vec3(10.0f / mesh.size));
 		if (rotateObject)
 			model *= Mat4::rotation(0.2f * currentTime, Vec3(0.0f, 1.0f, 0.0f));
-		model *= Mat4::translation(bbCenter * -1.0f);
+		model *= Mat4::translation(mesh.center * -1.0f);
 
 		shader.setFloat("time", currentTime);
 		shader.setMat4("projection", projection.transpose());

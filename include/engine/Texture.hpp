@@ -11,6 +11,7 @@ class Texture
 		unsigned int id;
 
 	public:
+		Texture();
 		Texture(const std::string& path);
 		~Texture();
 

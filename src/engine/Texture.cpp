@@ -1,5 +1,7 @@
 #include "engine/Texture.hpp"
 
+Texture::Texture() : id(0) {}
+
 Texture::Texture(const std::string& path)
 {
 	int width, height, nrChannels;

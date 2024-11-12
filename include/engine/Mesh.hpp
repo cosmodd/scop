@@ -26,9 +26,12 @@ public:
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 
-	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+	BoundingBox boundingBox;
+	Vec3 center;
+	float size;
 
-	BoundingBox getBoundingBox();
+	Mesh();
+	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
 	void draw();
 };

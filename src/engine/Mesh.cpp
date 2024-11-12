@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <limits>
 
+Mesh::Mesh() : VAO(0), VBO(0), EBO(0), boundingBox(), center(), size() {}
+
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : vertices(vertices),
 																			  indices(indices)
 {
@@ -31,11 +33,6 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : ve
 	glEnableVertexAttribArray(2);
 
 	glBindVertexArray(0);
-}
-
-BoundingBox Mesh::getBoundingBox()
-{
-	BoundingBox boundingBox;
 
 	boundingBox.min = Vec3(std::numeric_limits<float>::max());
 	boundingBox.max = Vec3(std::numeric_limits<float>::min());
@@ -57,7 +54,8 @@ BoundingBox Mesh::getBoundingBox()
 			boundingBox.max.z = vertex.position.z;
 	}
 
-	return boundingBox;
+	this->center = (boundingBox.min + boundingBox.max) / 2.0f;
+	this->size = (boundingBox.max - boundingBox.min).magnitude();
 }
 
 void Mesh::draw()
