@@ -19,19 +19,18 @@ struct BoundingBox
 
 class Mesh
 {
-	private:
-		unsigned int VAO, VBO, EBO;
-		unsigned int indicesCount;
+private:
+	unsigned int VAO, VBO, EBO;
 
-	public:
-		std::vector<Vertex> vertices;
-		std::vector<unsigned int> indices;
+public:
+	std::vector<Vertex> vertices;
+	std::vector<unsigned int> indices;
 
-		Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
-		BoundingBox getBoundingBox();
-		
-		void draw();
+	BoundingBox getBoundingBox();
+
+	void draw();
 };
 
-Mesh loadMesh(const std::string& path);
+Mesh loadMesh(const std::string &path);
