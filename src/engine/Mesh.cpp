@@ -4,9 +4,8 @@
 #include <algorithm>
 #include <limits>
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices):
-	vertices(vertices),
-	indices(indices)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : vertices(vertices),
+																			  indices(indices)
 {
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -41,7 +40,7 @@ BoundingBox Mesh::getBoundingBox()
 	boundingBox.min = Vec3(std::numeric_limits<float>::max());
 	boundingBox.max = Vec3(std::numeric_limits<float>::min());
 
-	for (const Vertex& vertex : vertices)
+	for (const Vertex &vertex : vertices)
 	{
 		if (vertex.position.x < boundingBox.min.x)
 			boundingBox.min.x = vertex.position.x;
@@ -68,7 +67,7 @@ void Mesh::draw()
 	glBindVertexArray(0);
 }
 
-Mesh loadMesh(const std::string& path)
+Mesh loadMesh(const std::string &path)
 {
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
@@ -112,11 +111,10 @@ Mesh loadMesh(const std::string& path)
 		else if (type == "f")
 		{
 			std::string vertex;
+			uint32_t indices[4][3] = {{0}};
+			int indexCount = 0;
 
-			if (std::count(line.begin(), line.end(), ' ') >= 4)
-				throw std::runtime_error("Only models that are triangulated are supported");
-
-			while (stream >> vertex)
+			while (stream >> vertex && indexCount < 4)
 			{
 				std::istringstream vertexStream(vertex);
 				std::string index;
@@ -126,7 +124,21 @@ Mesh loadMesh(const std::string& path)
 					if (index.empty())
 						continue;
 
-					const unsigned int indexValue = std::stoi(index) - 1;
+					const unsigned int indexValue = std::stoi(index);
+					indices[indexCount][j] = indexValue;
+				}
+
+				indexCount++;
+			}
+
+			for (int i = 0; i < 3; i++)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					const uint32_t indexValue = indices[i][j] - 1;
+
+					if (indices[i][j] == 0)
+						continue;
 
 					if (j == 0)
 						vertexIndices.push_back(indexValue);
@@ -134,6 +146,28 @@ Mesh loadMesh(const std::string& path)
 						uvIndices.push_back(indexValue);
 					else if (j == 2)
 						normalIndices.push_back(indexValue);
+				}
+			}
+
+			if (indexCount > 3)
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					const int index = (i + 2) % 4;
+					for (int j = 0; j < 3; j++)
+					{
+						const uint32_t indexValue = indices[index][j] - 1;
+
+						if (indices[index][j] == 0)
+							continue;
+
+						if (j == 0)
+							vertexIndices.push_back(indexValue);
+						else if (j == 1)
+							uvIndices.push_back(indexValue);
+						else if (j == 2)
+							normalIndices.push_back(indexValue);
+					}
 				}
 			}
 		}
