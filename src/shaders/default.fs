@@ -13,7 +13,7 @@ uniform bool showNormal;
 
 void main()
 {
-	if (texture(objectTexture, f_uv).a < 0.1)
+	if (!showNormal && texture(objectTexture, f_uv).a < 0.1)
 		discard;
 
 	// Light calculations
