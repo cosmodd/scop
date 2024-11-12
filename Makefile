@@ -23,6 +23,7 @@ OBJS	=	$(filter %.o, $(SRCS:.cpp=.o) $(SRCS:.c=.o))
 
 NAME		=	scop
 
+CC			=	gcc
 CXX			=	c++
 CXXFLAGS	=	-Wall -Wextra -Werror
 
@@ -37,12 +38,9 @@ LIBS		=	-lglfw -lGL
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 %.o: %.c
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 all: $(NAME)
-
-test:
-	echo $(OBJS)
 
 ## Explanation to why Objects before Libraries
 #####
