@@ -189,5 +189,26 @@ Mesh loadMesh(const std::string &path)
 		indices.push_back(i);
 	}
 
+	// Generate normals if they doesn't exist
+	if (normals.empty())
+	{
+		for (uint32_t i = 0; i < indices.size(); i += 3)
+		{
+			Vec3 a = vertices[indices[i]].position;
+			Vec3 b = vertices[indices[i + 1]].position;
+			Vec3 c = vertices[indices[i + 2]].position;
+
+			Vec3 u = b - a;
+			Vec3 v = c - a;
+
+			Vec3 normal = u.cross(v);
+			normal.normalize();
+
+			vertices[indices[i]].normal = normal;
+			vertices[indices[i + 1]].normal = normal;
+			vertices[indices[i + 2]].normal = normal;
+		}
+	}
+
 	return Mesh(vertices, indices);
 }
